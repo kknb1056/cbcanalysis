@@ -1,0 +1,36 @@
+<?xml-stylesheet type="text/xsl" href="cbcdaqConfig.xsl"?>
+<xc:Partition xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xc="http://xdaq.web.cern.ch/xdaq/xsd/2004/XMLConfiguration-30"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <xc:Context url="http://127.0.0.1:13000">
+        <xc:Application class="GlibSupervisor" id="94804" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:GlibSupervisor" xsi:type="soapenc:Struct">	
+				<UhalConfigFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/xml/connections.xml</UhalConfigFile>
+				<ParamHtmlFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/config/supervisorAcqParam.html</ParamHtmlFile>
+				<BoardName xsi:type="xsd:string">board</BoardName>
+            </properties>
+        </xc:Application>
+        <xc:Application class="GlibStreamer" id="1434" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:GlibStreamer" xsi:type="soapenc:Struct">	
+				<UhalConfigFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/xml/connections.xml</UhalConfigFile>
+				<ParamHtmlFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/config/streamerAcqParam.html</ParamHtmlFile>
+				<ConditionHtmlFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/config/conditionAcqParam.html</ConditionHtmlFile>
+				<BoardName xsi:type="xsd:string">board</BoardName>
+				<RUName xsi:type="xsd:string">rubuilder::ru::Application</RUName>
+				<RU xsi:type="xsd:integer">1</RU>
+            </properties>
+        </xc:Application>
+        <xc:Application class="ParamViewer" id="943" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:ParamViewer" xsi:type="soapenc:Struct">	
+				<UhalConfigFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/xml/connections.xml</UhalConfigFile>
+				<BoardName xsi:type="xsd:string">board</BoardName>
+				<HtmlConfigFile xsi:type="xsd:string">file:///home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/config/param.htm</HtmlConfigFile>
+            </properties>
+        </xc:Application>
+        <xc:Module>/home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibSupervisor/lib/linux/x86_64_slc5/libGlibSupervisor.so</xc:Module>
+        <xc:Module>/home/xtaldaq/trackerDAQ-3.1/CBCDAQ/GlibStreamer/lib/linux/x86_64_slc5/libGlibStreamer.so</xc:Module>
+        <xc:Module>/home/xtaldaq/trackerDAQ-3.1/CBCDAQ/ParamViewer/lib/linux/x86_64_slc5/libParamViewer.so</xc:Module>
+    </xc:Context>
+
+</xc:Partition>

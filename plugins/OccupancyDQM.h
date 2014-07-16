@@ -1,11 +1,11 @@
-#ifndef XtalDAQ_OnlineCBCAnalyser_plugins_OccupancyDQM_h
-#define XtalDAQ_OnlineCBCAnalyser_plugins_OccupancyDQM_h
+#ifndef SLHCUpgradeTracker_CBCAnalysis_plugins_OccupancyDQM_h
+#define SLHCUpgradeTracker_CBCAnalysis_plugins_OccupancyDQM_h
 
 #include <mutex>
 #include <atomic>
 #include <FWCore/Framework/interface/Frameworkfwd.h>
 #include <FWCore/Framework/interface/EDAnalyzer.h>
-#include "XtalDAQ/OnlineCBCAnalyser/interface/HttpServer.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/HttpServer.h"
 
 
 namespace cbcanalyser

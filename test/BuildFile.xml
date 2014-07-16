@@ -1,6 +1,6 @@
 <flags CXXFLAGS="-O0 -g -DDEBUG"/>
-<use name="XtalDAQ/OnlineCBCAnalyser"/>
+<use name="SLHCUpgradeTracker/CBCAnalysis"/>
 
-<bin name="XtalDAQ_OnlineCBCAnalyser_unitTests" file="unitTestsMain.cpp,*UnitTestSuite.cpp">
+<bin name="SLHCUpgradeTracker_CBCAnalysis_unitTests" file="unitTestsMain.cpp,*UnitTestSuite.cpp">
 	<use name="cppunit"/>
 </bin>

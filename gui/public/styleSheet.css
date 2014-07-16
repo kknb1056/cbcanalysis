@@ -1,0 +1,41 @@
+.titleStyle {
+   font-size: 150%;
+   padding: 12px;
+   background-color: #FFFFFF;
+}
+
+.selectedAreaStyle {
+   font-size: 100%;
+   padding: 8px;
+   background-color: #AACCFF;
+}
+
+.areaStyle {
+   font-size: 100%;
+   padding: 8px;
+   background-color: #FFFFFF;
+}
+
+.gwt-DialogBox {
+   border: 2px solid;
+   background-color: white;
+}
+
+.gwt-DialogBox .Caption {
+   background-color: #FF6666;
+   padding: 3px;
+   margin: 2px;
+   font-weight: bold;
+   cursor: default;
+}
+
+.gwt-DialogBox .Contents {
+   padding: 10px;
+}
+
+.gwt-PopupPanelGlass {
+   background-color: #000;
+   opacity: 0.3;
+   filter: alpha(opacity=30);
+}
+

@@ -8,8 +8,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef XtalDAQ_OnlineCBCAnalyser_interface_HttpServer_h
-#define XtalDAQ_OnlineCBCAnalyser_interface_HttpServer_h
+#ifndef SLHCUpgradeTracker_CBCAnalysis_interface_HttpServer_h
+#define SLHCUpgradeTracker_CBCAnalysis_interface_HttpServer_h
 
 #include <string>
 #include <vector>
@@ -96,6 +96,31 @@ namespace httpserver
 			virtual void handleRequest( const httpserver::HttpServer::Request& request, httpserver::HttpServer::Reply& reply ) = 0;
 		};
 
+		/** @brief Utility function that will split a request URI into the resource and any parameters.
+		 *
+		 * Split the given string up by the standard delimeters "?", "&" and "=". Anything before the first "?" is
+		 * considered the resource name, and everything after parameters for the resource. The parameters are split
+		 * up by the "&" character, and can either be just names or names and values separated by "=".
+		 *
+		 * @param URI The string representing the URI, usually given by request.uri
+		 * @param resource      A string that will be filled with the name of the resource.
+		 * @param parameters    A vector that will be filled with std::pairs of the form [parameterName,parameterValue].
+		 * @param decodeSymbols If true, urlDecode(..) is called on any results.
+		 */
+		static void splitURI( const std::string& URI, std::string& resource, std::vector< std::pair<std::string,std::string> >& parameters, bool decodeSymbols=true );
+
+		/** @brief Replaces some common url encodings with the ASCII
+		 *
+		 * Current replacements are below. I'll add to this list as I encounter problems.
+		 *
+		 * '+' and '%20' go to ' ' (space);
+		 * '%2B' goes to '+';
+		 * '%2F' goes to '/';
+		 * '%26' goes to '&';
+		 * '%3F' goes to '?';
+		 * '%25' goes to '%'
+		 */
+		static void urlDecode( std::string& url );
 	public:
 		HttpServer( IRequestHandler& requestHandler );
 		~HttpServer();
@@ -105,6 +130,9 @@ namespace httpserver
 
 		/// @brief Stops the server. Harmless to call if the server has already been stopped.
 		void stop();
+
+		/// @brief Blocks program execution until the server stops.
+		void blockUntilFinished();
 	private:
 		/// @brief Private members hidden behind a pimple, aka compiler firewall.
 		std::unique_ptr<class HttpServerPrivateMembers> pImple;

@@ -1,5 +1,5 @@
-#ifndef XtalDAQ_OnlineCBCAnalyser_interface_CBCChannelUnpacker_h
-#define XtalDAQ_OnlineCBCAnalyser_interface_CBCChannelUnpacker_h
+#ifndef SLHCUpgradeTracker_CBCAnalysis_interface_CBCChannelUnpacker_h
+#define SLHCUpgradeTracker_CBCAnalysis_interface_CBCChannelUnpacker_h
 
 #include <vector>
 

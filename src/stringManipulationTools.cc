@@ -1,4 +1,4 @@
-#include "XtalDAQ/OnlineCBCAnalyser/interface/stringManipulationTools.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/stringManipulationTools.h"
 
 #include <sstream>
 #include <stdexcept>

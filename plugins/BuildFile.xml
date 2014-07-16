@@ -1,6 +1,6 @@
 <use name="DataFormats/FEDRawData"/>
 <use name="FWCore/Framework"/>
-<use name="XtalDAQ/OnlineCBCAnalyser"/>
-<library file="*.cc" name="XtalDAQOnlineCBCAnalyserPlugins">
+<use name="SLHCUpgradeTracker/CBCAnalysis"/>
+<library file="*.cc" name="SLHCUpgradeTrackerCBCAnalysisPlugins">
 	<flags   EDM_PLUGIN="1"/>
 </library>

@@ -1,0 +1,5 @@
+<include_path path="../interface"/>
+<flags LDFLAGS="-lGpad -lGraf"/>
+<use name="SLHCUpgradeTracker/CBCAnalysis"/>
+<use name="root"/>
+<bin name="standaloneCBCAnalyser" file="standaloneCBCAnalyser.cpp"/>

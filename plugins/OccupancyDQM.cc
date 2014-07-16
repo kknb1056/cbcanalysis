@@ -1,11 +1,11 @@
-#include "XtalDAQ/OnlineCBCAnalyser/plugins/OccupancyDQM.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/plugins/OccupancyDQM.h"
 
 #include <FWCore/Framework/interface/MakerMacros.h>
 #include <FWCore/Framework/interface/Event.h>
 #include <DataFormats/FEDRawData/interface/FEDRawDataCollection.h>
 #include <EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h>
-#include "XtalDAQ/OnlineCBCAnalyser/interface/CBCChannelUnpacker.h"
-#include "XtalDAQ/OnlineCBCAnalyser/interface/SCurve.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/CBCChannelUnpacker.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/SCurve.h"
 
 namespace cbcanalyser
 {

@@ -30,7 +30,7 @@ process.AnalyseCBCOutput = cms.EDAnalyzer("AnalyseCBCOutput",
 	savedStateFilename = cms.untracked.string("/tmp/savedState.log"),
 	commsServerHostname = cms.untracked.string("127.0.0.1"),
 	commsServerPort = cms.untracked.string("4000"),
-	debug = cms.untracked.bool(False)
+	debug = cms.untracked.bool(True)
 )
 
 process.DQM = cms.EDAnalyzer("OccupancyDQM",

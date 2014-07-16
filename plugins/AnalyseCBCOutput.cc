@@ -1,4 +1,4 @@
-#include "XtalDAQ/OnlineCBCAnalyser/plugins/AnalyseCBCOutput.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/plugins/AnalyseCBCOutput.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -10,8 +10,9 @@
 #include <FWCore/ServiceRegistry/interface/Service.h>
 #include <CommonTools/UtilAlgos/interface/TFileService.h>
 #include <FWCore/MessageService/interface/MessageLogger.h>
-#include "XtalDAQ/OnlineCBCAnalyser/interface/stringManipulationTools.h"
-#include "XtalDAQ/OnlineCBCAnalyser/interface/CBCChannelUnpacker.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/stringManipulationTools.h"
+#include "SLHCUpgradeTracker/CBCAnalysis/interface/CBC2ChannelUnpacker.h"
+#include "TMath.h"
 
 
 namespace cbcanalyser
@@ -178,9 +179,12 @@ void cbcanalyser::AnalyseCBCOutput::analyze( const edm::Event& event, const edm:
 				continue;
 			}
 
-			//std::cout << "FEDRawData at fedIndex " << std::dec << fedIndex << " has size " << fedData.size() << std::endl;
+			if( debug_ ) std::cout << "FEDRawData at fedIndex " << std::dec << fedIndex << " has size " << fedData.size() << std::endl;
 			try
 			{
+				{
+					cbcanalyser::CBC2ChannelUnpacker unpacker(fedData);
+				}
 				sistrip::FEDBuffer myBuffer(fedData.data(),fedData.size());
 				//myBuffer.print( std::cout );
 
@@ -188,17 +192,21 @@ void cbcanalyser::AnalyseCBCOutput::analyze( const edm::Event& event, const edm:
 				{
 					if( !myBuffer.fePresent(feIndex) ) continue;
 
+					if( debug_ ) std::cout << "FE " << feIndex << " is present" << std::endl;
+
 					for ( uint16_t channelInFe = 0; channelInFe < sistrip::FEDCH_PER_FEUNIT; ++channelInFe )
 					{
 						const uint16_t channelIndex=feIndex*sistrip::FEDCH_PER_FEUNIT+channelInFe;
 						const sistrip::FEDChannel& channel=myBuffer.channel(channelIndex);
 
-						cbcanalyser::CBCChannelUnpacker unpacker(channel);
+						cbcanalyser::CBC2ChannelUnpacker unpacker(channel);
 						if( !unpacker.hasData() ) continue;
 
 						cbcanalyser::FedChannelSCurves& fedChannelSCurves=detectorSCurves_.getFedChannelSCurves( fedIndex, channelIndex );
 
 						const std::vector<bool>& hits=unpacker.hits();
+
+						if( debug_ ) std::cout << "Channel " << channelIndex << " has " << hits.size() << " hits: ";
 
 						for( size_t stripNumber=0; stripNumber<hits.size(); ++stripNumber )
 						{
@@ -212,8 +220,16 @@ void cbcanalyser::AnalyseCBCOutput::analyze( const edm::Event& event, const edm:
 							if( hits[stripNumber]==true ) ++sCurveEntry.eventsOn();
 							else ++sCurveEntry.eventsOff();
 
+							if( debug_ )
+							{
+								if( hits[stripNumber]==true ) std::cout << "1";
+								else std::cout << ".";
+							}
+
 							if( pSCurveEntryToMonitorForDQM_==nullptr ) pSCurveEntryToMonitorForDQM_=&sCurveEntry;
 						}
+
+						if( debug_ ) std::cout << '\n';
 
 					} // end of loop over FED channels
 				}
@@ -226,7 +242,7 @@ void cbcanalyser::AnalyseCBCOutput::analyze( const edm::Event& event, const edm:
 		} // end of "if FED has data"
 	} // end of loop over FEDs
 
-	if( debug_ ) dumpSCurveToStream( std::cout );
+	//if( debug_ ) dumpSCurveToStream( std::cout );
 }
 
 void cbcanalyser::AnalyseCBCOutput::endJob()
@@ -266,22 +282,9 @@ void cbcanalyser::AnalyseCBCOutput::endLuminosityBlock( const edm::LuminosityBlo
 void cbcanalyser::AnalyseCBCOutput::handleRequest( const httpserver::HttpServer::Request& request, httpserver::HttpServer::Reply& reply )
 {
 	//
-	// Currently just returns the details of the request for debugging. Also able to set members with
-	// a request to the location "/changeVar" with the member name and new value as parameters. Only
-	// member currently is "globalComparatorThreshold_" which must be set between 0 and 1.
+	// Check the URI in the request and see what the request resource is. If it's recognised, farm off to
+	// specific methods. Also see if there are any parameters included as part of the URI.
 	//
-
-	std::stringstream outputStream;
-
-	outputStream << "Request was:" << "\n"
-			<< 	"method=" << request.method << "\n"
-			<< 	"uri=" << request.uri << "\n"
-			<< 	"http_version_major=" << request.http_version_major << "\n"
-			<< 	"http_version_minor=" << request.http_version_minor << "\n"
-			<< 	"headers.size()=" << request.headers.size() << "\n";
-	for( const auto& header : request.headers ) outputStream << "\t" << header.name << "=" << header.value << "\n";
-
-	outputStream << "\n" << "globalComparatorThreshold_=" << globalComparatorThreshold_ << "\n";
 
 	// Split off any parameters in the uri
 	std::string resource;
@@ -298,35 +301,41 @@ void cbcanalyser::AnalyseCBCOutput::handleRequest( const httpserver::HttpServer:
 		parameters[0].second=parameterString.substr(characterPosition+1);
 	}
 
-	outputStream << "Decoded uri as:" << "\n"
-			<< "resource=" << resource << "\n";
-	for( const auto& parameter : parameters ) outputStream << parameter.first << "=" << parameter.second << "\n";
 
 	try
 	{
-		if( resource=="/changeVar" )
+		if( resource=="/changeVar" ) return request_changeVar( reply, parameters );
+		else if( resource=="/scurveFits" ) return request_scurveFits( reply );
+		else if( resource=="/createFakeData" ) return request_createFakeData( reply );
+		else
 		{
-			for( const auto& parameter : parameters )
-			{
-				if( parameter.first=="globalComparatorThreshold_" )
-				{
-					std::stringstream stringConverter;
-					stringConverter.str(parameter.second);
-					float variable;
-					stringConverter >> variable;
-					if( variable<0 || variable>1 ) throw std::runtime_error( "globalComparatorThreshold_ must be set between 0 and 1 inclusive" );
-					outputStream << "Setting " << parameter.first << " to " << variable << "\n";
-					globalComparatorThreshold_=variable;
-				}
-			}
+			//
+			// If the request wasn't recognised print some stuff for debugging
+			//
+			std::stringstream outputStream;
+
+			outputStream << "Request was:" << "\n"
+					<< 	"method=" << request.method << "\n"
+					<< 	"uri=" << request.uri << "\n"
+					<< 	"http_version_major=" << request.http_version_major << "\n"
+					<< 	"http_version_minor=" << request.http_version_minor << "\n"
+					<< 	"headers.size()=" << request.headers.size() << "\n";
+			for( const auto& header : request.headers ) outputStream << "\t" << header.name << "=" << header.value << "\n";
+
+			outputStream << "\n" << "globalComparatorThreshold_=" << globalComparatorThreshold_ << "\n";
+
+			outputStream << "Decoded uri as:" << "\n"
+					<< "resource=" << resource << "\n";
+			for( const auto& parameter : parameters ) outputStream << parameter.first << "=" << parameter.second << "\n";
+
+			reply.status=httpserver::HttpServer::Reply::StatusType::ok;
+			reply.content=outputStream.str();
+			reply.headers.resize( 2 );
+			reply.headers[0].name="Content-Length";
+			reply.headers[0].value=std::to_string( reply.content.size() );
+			reply.headers[1].name="Content-Type";
+			reply.headers[1].value="text/plain";
 		}
-		reply.status=httpserver::HttpServer::Reply::StatusType::ok;
-		reply.content=outputStream.str();
-		reply.headers.resize( 2 );
-		reply.headers[0].name="Content-Length";
-		reply.headers[0].value=std::to_string( reply.content.size() );
-		reply.headers[1].name="Content-Type";
-		reply.headers[1].value="text/plain";
 	} // end of try block
 	catch( std::exception& error )
 	{
@@ -338,6 +347,133 @@ void cbcanalyser::AnalyseCBCOutput::handleRequest( const httpserver::HttpServer:
 		reply.headers[1].name="Content-Type";
 		reply.headers[1].value="text/plain";
 	}
+}
+
+void cbcanalyser::AnalyseCBCOutput::request_scurveFits( httpserver::HttpServer::Reply& reply )
+{
+	std::stringstream outputStream;
+
+	outputStream << "{" << "\n"
+			<< "\t" << "\"scurves\" : [" << "\n";
+
+	// Loop over all the FEDs
+	for( const auto& fedIndex : detectorSCurves_.getValidFedIndices() )
+	{
+		// Loop over all the FED channels
+		auto& fedSCurves=detectorSCurves_.getFedSCurves(fedIndex);
+		for( const auto& channelIndex : fedSCurves.getValidChannelIndices() )
+		{
+			// Loop over all the strips of the CBC chip connected on this channel
+			auto& channelSCurves=fedSCurves.getFedChannelSCurves(channelIndex);
+			//output << "FED " << fedIndex << ", FED channel " << channelIndex << ", threshold=" << globalThreshold << " -" << "\n";
+			for( const auto& stripIndex : channelSCurves.getValidStripIndices() )
+			{
+				auto& sCurve=channelSCurves.getStripSCurve(stripIndex);
+				std::tuple<float,float,float,float,float> fitParameters;
+				fitParameters=sCurve.fitParameters();
+
+				// Output the fit parameters as JSON
+				outputStream << "\t" << "{" << "\n"
+						<< "\t\t" << "\"fed\" : " << fedIndex << "," << "\n"
+						<< "\t\t" << "\"fedChannel\" : " << channelIndex << "," << "\n"
+						<< "\t\t" << "\"cbcChannel\" : " << stripIndex << "," << "\n"
+						<< "\t\t" << "\"fitParameters\" : {" << "\n"
+						<< "\t\t\t" << "\"chi2\" : " << std::get<0>(fitParameters) << "," << "\n"
+						<< "\t\t\t" << "\"NDF\" : " << std::get<1>(fitParameters) << "," << "\n"
+						<< "\t\t\t" << "\"maxEfficiency\" : " << std::get<2>(fitParameters) << "," << "\n"
+						<< "\t\t\t" << "\"standardDeviation\" : " << std::get<3>(fitParameters) << "," << "\n"
+						<< "\t\t\t" << "\"mean\" : " << std::get<4>(fitParameters) << "," << "\n"
+						<< "\t\t" << "}" << "\n"
+						<< "\t" << "}," << "\n";
+			} // end of loop over strips
+		} // end of loop over FED channels
+	} // end of loop over FEDs
+
+	outputStream << "\t" << "]" << "\n"
+			<< "}" << "\n";
+
+	reply.status=httpserver::HttpServer::Reply::StatusType::ok;
+	reply.content=outputStream.str();
+	reply.headers.resize( 2 );
+	reply.headers[0].name="Content-Length";
+	reply.headers[0].value=std::to_string( reply.content.size() );
+	reply.headers[1].name="Content-Type";
+	reply.headers[1].value="application/json";
+}
+
+void cbcanalyser::AnalyseCBCOutput::request_createFakeData( httpserver::HttpServer::Reply& reply )
+{
+	const size_t numberOfThresholds=100;
+	const size_t numberOfEventsPerThreshold=100;
+	const float firstThreshold=0;
+	const float lastThreshold=5;
+	const float meanTurnOn=(firstThreshold+lastThreshold)*0.45;
+	const float standardDeviation=30.0/(lastThreshold-firstThreshold);
+
+	cbcanalyser::FedChannelSCurves& fedChannelSCurves=detectorSCurves_.getFedChannelSCurves( 42, 6 );
+
+	for( size_t stripNumber=0; stripNumber<128; ++stripNumber )
+	{
+		cbcanalyser::SCurve& sCurve=fedChannelSCurves.getStripSCurve(stripNumber);
+
+		for( size_t index=0; index<numberOfThresholds; ++index )
+		{
+			float threshold=firstThreshold+(lastThreshold-firstThreshold)/static_cast<float>(numberOfThresholds-1)*static_cast<float>(index);
+			// Randomise the data very slightly so that not all channels are the same. Make some
+			// random numbers between 0.95 and 1.05 so that the values will fluctuate +/- 5%
+			float meanFluctuated=meanTurnOn*(static_cast<float>(std::rand())/static_cast<float>(RAND_MAX)*0.1+0.95);
+			float stddevFluctuated=standardDeviation*(static_cast<float>(std::rand())/static_cast<float>(RAND_MAX)*0.1+0.95);
+			float efficiency=0.5*( 1 + TMath::Erf( stddevFluctuated*(threshold-meanFluctuated)/TMath::Sqrt2() ) );
+			cbcanalyser::SCurveEntry& entry=sCurve.getEntry(threshold);
+			entry.eventsOn()=efficiency*static_cast<float>( numberOfEventsPerThreshold )+0.5; // Add 0.5 so that it rounds properly
+			entry.eventsOff()=numberOfEventsPerThreshold-entry.eventsOn();
+		}
+	}
+
+	reply.status=httpserver::HttpServer::Reply::StatusType::ok;
+	reply.content="Fake data created for "+std::to_string(numberOfThresholds)+" thresholds between "+std::to_string(firstThreshold)+" and "+std::to_string(lastThreshold)+"\n";
+	reply.headers.resize( 2 );
+	reply.headers[0].name="Content-Length";
+	reply.headers[0].value=std::to_string( reply.content.size() );
+	reply.headers[1].name="Content-Type";
+	reply.headers[1].value="text/plain";
+}
+
+void cbcanalyser::AnalyseCBCOutput::request_changeVar( httpserver::HttpServer::Reply& reply, const std::vector< std::pair<std::string,std::string> >& parameters )
+{
+	std::stringstream outputStream;
+
+	//
+	// Loop over all of the parameters and see if one of the names is one that I
+	// recognise. If so convert the value from string to float and change the
+	// variable.
+	//
+	if( parameters.empty() ) outputStream << "No parameters specified to modify." << "\n";
+
+	for( const auto& parameter : parameters )
+	{
+		if( parameter.first=="globalComparatorThreshold_" )
+		{
+			std::stringstream stringConverter;
+			stringConverter.str(parameter.second);
+			float variable;
+			stringConverter >> variable;
+			outputStream << "Setting " << parameter.first << " to " << variable << " previous value was " << globalComparatorThreshold_ << "\n";
+			globalComparatorThreshold_=variable;
+		}
+		else
+		{
+			outputStream << "Can't set unknown variable '" << parameter.first << "'" << "\n";
+		}
+	}
+
+	reply.status=httpserver::HttpServer::Reply::StatusType::ok;
+	reply.content=outputStream.str();
+	reply.headers.resize( 2 );
+	reply.headers[0].name="Content-Length";
+	reply.headers[0].value=std::to_string( reply.content.size() );
+	reply.headers[1].name="Content-Type";
+	reply.headers[1].value="text/plain";
 }
 
 void cbcanalyser::AnalyseCBCOutput::readI2CValues()
